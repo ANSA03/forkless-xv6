@@ -1,0 +1,7 @@
+PASS: expected completion markers in all three fresh transcripts
+PASS: no kernel panic or functional failure markers
+PASS: equal recoverable-page counts in all fresh spawn runs
+PASS: 40 benchmark rows
+PASS: git diff --check
+PASS: Python syntax
+PASS: local Markdown links

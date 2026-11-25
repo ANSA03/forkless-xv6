@@ -25,6 +25,8 @@ void            consputc(int);
 
 // exec.c
 int             kexec(char*, char**);
+int             execimage(struct proc*, char*, char**);
+int             kspawn(char*, char**);
 
 // file.c
 struct file*    filealloc(void);

@@ -701,3 +701,39 @@ procdump(void)
     printk("\n");
   }
 }
+
+// Construct a child directly from an executable, without cloning user memory.
+int
+kspawn(char *path, char **argv)
+{
+  struct proc *p = myproc(), *np;
+  int pid;
+
+  if ((np = allocproc()) == 0)
+    return -1;
+  // USED reserves the slot. Loading may sleep, so drop the spinlock.
+  release(&np->lock);
+  memset(np->trapframe, 0, sizeof(*np->trapframe));
+  if (execimage(np, path, argv) < 0) {
+    acquire(&np->lock);
+    freeproc(np);
+    release(&np->lock);
+    return -1;
+  }
+
+  // Share open file descriptions (including offsets) and the cwd inode.
+  for (int i = 0; i < NOFILE; i++)
+    if (p->ofile[i])
+      np->ofile[i] = filedup(p->ofile[i]);
+  np->cwd = idup(p->cwd);
+  pid = np->pid;
+
+  // Follow the wait_lock -> child lock order used by wait/exit.
+  acquire(&wait_lock);
+  np->parent = p;
+  acquire(&np->lock);
+  np->state = RUNNABLE;
+  release(&np->lock);
+  release(&wait_lock);
+  return pid;
+}

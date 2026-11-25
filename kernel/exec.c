@@ -6,6 +6,9 @@
 #include "proc.h"
 #include "defs.h"
 #include "elf.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
 
 static int loadseg(pde_t *, uint64, struct inode *, uint, uint);
 
@@ -22,10 +25,11 @@ flags2perm(int flags)
 }
 
 //
-// the implementation of the exec() system call
+// Load and commit an executable image to a private process.
+// The caller must ensure p cannot run during construction.
 //
 int
-kexec(char *path, char **argv)
+execimage(struct proc *p, char *path, char **argv)
 {
   char *s, *last;
   int i, off;
@@ -34,7 +38,6 @@ kexec(char *path, char **argv)
   struct inode *ip;
   struct proghdr ph;
   pagetable_t pagetable = 0, oldpagetable;
-  struct proc *p = myproc();
 
   begin_op();
 
@@ -50,7 +53,11 @@ kexec(char *path, char **argv)
     goto bad;
 
   // Is this really an ELF file?
-  if (elf.magic != ELF_MAGIC)
+  if (elf.magic != ELF_MAGIC || elf.elf[0] != 2 || elf.elf[1] != 1 ||
+      elf.type != 2 || elf.machine != 243 || elf.version != 1 ||
+      elf.phentsize != sizeof(struct proghdr) || elf.phnum == 0 ||
+      elf.phoff > ip->size ||
+      (uint64)elf.phnum * sizeof(ph) > ip->size - elf.phoff)
     goto bad;
 
   if ((pagetable = proc_pagetable(p)) == 0)
@@ -66,6 +73,10 @@ kexec(char *path, char **argv)
       goto bad;
     if (ph.vaddr + ph.memsz < ph.vaddr)
       goto bad;
+    if (ph.vaddr + ph.memsz > TRAPFRAME - (USERSTACK + 1) * PGSIZE ||
+        ph.vaddr < sz ||
+        ph.off > ip->size || ph.filesz > ip->size - ph.off)
+      goto bad;
     if (ph.vaddr % PGSIZE != 0)
       goto bad;
     uint64 sz1;
@@ -76,11 +87,15 @@ kexec(char *path, char **argv)
     if (loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
       goto bad;
   }
+  // The entry must lie in a user executable mapping.
+  pte_t *entry = elf.entry < sz ? walk(pagetable, elf.entry, 0) : 0;
+  if (entry == 0 || (*entry & (PTE_V | PTE_U | PTE_X)) !=
+                        (PTE_V | PTE_U | PTE_X))
+    goto bad;
   iunlockput(ip);
   end_op();
   ip = 0;
 
-  p = myproc();
   uint64 oldsz = p->sz;
 
   // Allocate some pages at the next page boundary.
@@ -99,6 +114,8 @@ kexec(char *path, char **argv)
   // Copy argument strings into new stack, remember their
   // addresses in ustack[].
   for (argc = 0; argv[argc]; argc++) {
+    if (argc >= MAXARG - 1)
+      goto bad;
     sp -= strlen(argv[argc]) + 1;
     sp -= sp % 16; // riscv sp must be 16-byte aligned
     if (sp < stackbase)
@@ -118,9 +135,9 @@ kexec(char *path, char **argv)
       0)
     goto bad;
 
-  // a0 and a1 contain arguments to user main(argc, argv)
-  // argc is returned via the system call return
-  // value, which goes in a0.
+  // Set both argument registers: spawn does not return through the
+  // child's syscall path. Exec also returns argc through that path.
+  p->trapframe->a0 = argc;
   p->trapframe->a1 = sp;
 
   // Save program name for debugging.
@@ -173,4 +190,10 @@ loadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset,
   }
 
   return 0;
+}
+
+int
+kexec(char *path, char **argv)
+{
+  return execimage(myproc(), path, argv);
 }

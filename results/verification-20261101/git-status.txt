@@ -1,0 +1,16 @@
+ M Makefile
+ M kernel/defs.h
+ M kernel/exec.c
+ M kernel/proc.c
+ M kernel/syscall.c
+ M kernel/syscall.h
+ M kernel/sysfile.c
+ M user/user.h
+ M user/usys.pl
+?? SPAWN_README.md
+?? docs/
+?? results/
+?? tools/
+?? user/spawnbench.c
+?? user/spawnchild.c
+?? user/spawntest.c

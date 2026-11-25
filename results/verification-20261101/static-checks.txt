@@ -1,0 +1,7 @@
+PASS: git diff --check
+PASS: Python tool syntax
+PASS: generated syscall stub consistency
+PASS: unique syscall numbers and spawn declaration/dispatch agreement
+PASS: all three new user binaries in UPROGS
+PASS: no kfork/uvmcopy call in kspawn
+PASS: local Markdown link targets exist

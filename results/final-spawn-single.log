@@ -1,0 +1,17 @@
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 1 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+xv6 kernel is booting
+
+init: starting sh
+$ spawntest
+spawntest: parent pid=3 marker=1234
+spawntest: returned child pid=4
+spawnchild: pid=4 argc=3 argv[1]=hello argv[2]=xv6 marker=99
+spawntest: argument and ELF rejection passed
+spawntest: 200 success/failure cycles passed
+spawntest: exhausted and recovered 61 slots
+spawntest: four concurrent spawners passed
+spawntest: memory pressure recovered (14 partial-budget failures)
+spawntest: recoverable pages before=32471 after=32471
+spawntest: ALL PASSED
+$

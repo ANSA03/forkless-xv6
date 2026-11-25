@@ -455,8 +455,8 @@ sys_chdir(void)
   return 0;
 }
 
-uint64
-sys_exec(void)
+static uint64
+sys_launch(int spawning)
 {
   char path[MAXPATH], *argv[MAXARG];
   int i;
@@ -471,7 +471,8 @@ sys_exec(void)
     if (i >= NELEM(argv)) {
       goto bad;
     }
-    if (fetchaddr(uargv + sizeof(uint64) * i, (uint64 *)&uarg) < 0) {
+    if (uargv + sizeof(uint64) * i < uargv ||
+        fetchaddr(uargv + sizeof(uint64) * i, (uint64 *)&uarg) < 0) {
       goto bad;
     }
     if (uarg == 0) {
@@ -485,7 +486,7 @@ sys_exec(void)
       goto bad;
   }
 
-  int ret = kexec(path, argv);
+  int ret = spawning ? kspawn(path, argv) : kexec(path, argv);
 
   for (i = 0; i < NELEM(argv) && argv[i] != 0; i++)
     kfree(argv[i]);
@@ -496,6 +497,18 @@ bad:
   for (i = 0; i < NELEM(argv) && argv[i] != 0; i++)
     kfree(argv[i]);
   return -1;
+}
+
+uint64
+sys_exec(void)
+{
+  return sys_launch(0);
+}
+
+uint64
+sys_spawn(void)
+{
+  return sys_launch(1);
 }
 
 uint64
