@@ -106,7 +106,8 @@ main(void)
   char *large = sbrk(8192);
   check(large != SBRK_ERROR, "argument memory");
   memset(large, 'x', 8192);
-  check(spawn("spawnchild", (char *[]){large, 0}) == -1, "unterminated argument");
+  check(spawn("spawnchild", (char *[]){large, 0}) == -1,
+        "unterminated argument");
   large[4095] = 0;
   check(spawn("spawnchild", (char *[]){large, 0}) == -1, "stack overflow");
   check(sbrk(-8192) != SBRK_ERROR, "release argument memory");
@@ -130,7 +131,8 @@ main(void)
   number[1] = '0' + fd % 10;
   number[2] = 0;
   reap(spawn("/spawnchild", (char *[]){"spawnchild", "cwd", number, 0}), 0);
-  check(read(fd, &c, 1) == 1 && c == 'C', "shared offset and separate fd table");
+  check(read(fd, &c, 1) == 1 && c == 'C',
+        "shared offset and separate fd table");
   close(fd);
   unlink("marker");
   unlink("offset");
@@ -148,7 +150,8 @@ main(void)
   number[0] = '0' + fds[0] / 10;
   number[1] = '0' + fds[0] % 10;
   number[2] = 0;
-  while ((pid = spawn("spawnchild", (char *[]){"spawnchild", "hold", number, 0})) > 0) {
+  while ((pid = spawn("spawnchild",
+                      (char *[]){"spawnchild", "hold", number, 0})) > 0) {
     count++;
     check(count < NPROC, "bounded process table");
   }
@@ -214,8 +217,8 @@ main(void)
          failures);
   int free_after = countfree();
   check(free_after >= free_before, "recoverable physical pages");
-  printf("spawntest: recoverable pages before=%d after=%d\n",
-         free_before, free_after);
+  printf("spawntest: recoverable pages before=%d after=%d\n", free_before,
+         free_after);
   printf("spawntest: ALL PASSED\n");
   exit(0);
 }

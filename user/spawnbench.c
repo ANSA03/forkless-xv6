@@ -1,7 +1,7 @@
 #include "kernel/types.h"
 #include "user/user.h"
 
-#define TRIALS 5
+#define TRIALS   5
 #define LAUNCHES 100
 
 static int

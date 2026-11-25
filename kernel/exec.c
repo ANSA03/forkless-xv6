@@ -74,8 +74,7 @@ execimage(struct proc *p, char *path, char **argv)
     if (ph.vaddr + ph.memsz < ph.vaddr)
       goto bad;
     if (ph.vaddr + ph.memsz > TRAPFRAME - (USERSTACK + 1) * PGSIZE ||
-        ph.vaddr < sz ||
-        ph.off > ip->size || ph.filesz > ip->size - ph.off)
+        ph.vaddr < sz || ph.off > ip->size || ph.filesz > ip->size - ph.off)
       goto bad;
     if (ph.vaddr % PGSIZE != 0)
       goto bad;
@@ -89,8 +88,8 @@ execimage(struct proc *p, char *path, char **argv)
   }
   // The entry must lie in a user executable mapping.
   pte_t *entry = elf.entry < sz ? walk(pagetable, elf.entry, 0) : 0;
-  if (entry == 0 || (*entry & (PTE_V | PTE_U | PTE_X)) !=
-                        (PTE_V | PTE_U | PTE_X))
+  if (entry == 0 ||
+      (*entry & (PTE_V | PTE_U | PTE_X)) != (PTE_V | PTE_U | PTE_X))
     goto bad;
   iunlockput(ip);
   end_op();
